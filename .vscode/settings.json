@@ -76,6 +76,9 @@
         "bit": "cpp",
         "codecvt": "cpp",
         "iomanip": "cpp",
-        "stack": "cpp"
+        "stack": "cpp",
+        "*.tcc": "cpp",
+        "memory_resource": "cpp",
+        "cinttypes": "cpp"
     }
 }

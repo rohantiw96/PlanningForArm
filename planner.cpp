@@ -5,7 +5,7 @@
  *=================================================================*/
 #include <math.h>
 #include "mex.h"
-#include "rrt.h"
+#include "rrtstar.h"
 
 /* Input Arguments */
 #define	MAP_IN      prhs[0]
@@ -86,8 +86,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //{
     //    plannerRRT(map,x_size,y_size, armstart_anglesV_rad, armgoal_anglesV_rad, numofDOFs, &plan, &planlength);
     //}
-    double epsilon = 0.1;
-    double samples = 30;
+    double epsilon = 1;
+    double samples = 50;
     RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
     planner.plan(&plan, &planlength);
     printf("planner returned plan of length=%d\n", planlength); 
