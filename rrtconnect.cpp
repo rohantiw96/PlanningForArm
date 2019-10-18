@@ -5,11 +5,12 @@ RRTConnect::RRTConnect(double *map,int x_size,int y_size,const std::vector<doubl
 }
 
 void RRTConnect::addNode(const std::vector<double> &q_near,const std::vector<double> &q_new,bool is_goal){
-    if (q_near == q_new){
-        printf("Same Node Being Added\n");
+    if (is_goal) {
+        tree_goal_[q_new] = q_near;
     }
-    if (is_goal) tree_goal_[q_near] = q_new;
-    else tree_[q_new] = q_near;
+    else {
+        tree_[q_new] = q_near;
+    }
 }
 
 std::vector<double> RRTConnect::findNearestNeighbor(const std::vector<double> &q_rand,const bool is_goal){
@@ -36,51 +37,67 @@ std::vector<double> RRTConnect::findNearestNeighbor(const std::vector<double> &q
     }
     return nearest_neighbor;
 }
+std::vector<double> RRTConnect::extendNode(std::vector<double> q_new,const bool is_goal){
+    std::vector<double> q_near= findNearestNeighbor(q_new,is_goal);
+    std::vector<double> q_epilison = extend(q_near,q_new);
+    std::vector<double> collision_free_configeration = interpolate(q_near,q_epilison);
+    if (collision_free_configeration != q_near){
+        addNode(q_near,collision_free_configeration,is_goal);
+        return collision_free_configeration;
+    }
+    return std::vector<double>{};   
+}
 
+std::vector<double> RRTConnect::joinNode(std::vector<double> q_exteded,const bool is_goal){
+    std::vector<double> q_near= findNearestNeighbor(q_exteded,is_goal);
+    std::vector<double> collision_free_configeration = interpolate(q_near,q_exteded);
+    if (collision_free_configeration != q_near){
+        addNode(q_near,collision_free_configeration,is_goal);
+        return collision_free_configeration;
+    }
+    return std::vector<double>{};
+}
+std::vector<std::vector<double> > RRTConnect::getPathToGoal(const std::vector<double> &angles){
+    std::vector<std::vector<double> > path;
+    std::vector<double> q_current = angles;
+    while(tree_goal_[q_current] != arm_goal_){
+        path.push_back(q_current);
+        q_current = tree_goal_[q_current];
+    }
+    path.push_back(arm_goal_);
+    return path;
+}
 
 void RRTConnect::plan(double*** plan,int* planlength){
     bool reachedGoal = false;
     tree_[arm_start_] = std::vector<double>{};
     tree_goal_[arm_goal_] = arm_goal_;
     std::vector<double> q_new;
-    std::vector<double> q_near;
-    std::vector<double> q_near_goal;
-    std::vector<double> q_epilison;
     std::vector<double> collision_free_configeration;
     std::vector<double> collision_free_configeration_other;
     std::vector<std::vector<double>> path;
-    bool is_goal = false;
-    int j = 0;
+    std::vector<std::vector<double>> path_to_goal;
+    bool is_goal = true;
     while(!reachedGoal){
         q_new = getRandomAngleConfig(0,arm_goal_);
-        q_near = findNearestNeighbor(q_new,is_goal);
-        q_epilison = extend(q_near,q_new);
-        collision_free_configeration = interpolate(q_near,q_epilison);
-        if (collision_free_configeration != q_near){
-            addNode(q_near,collision_free_configeration,is_goal);
-            q_near_goal = findNearestNeighbor(collision_free_configeration,!is_goal);
-            collision_free_configeration_other = interpolate(collision_free_configeration,q_near_goal);
-            if (collision_free_configeration_other != q_near_goal){
-                addNode(q_near_goal,collision_free_configeration_other,!is_goal);
+        collision_free_configeration = extendNode(q_new,!is_goal);
+        if (!collision_free_configeration.empty()){
+            collision_free_configeration_other = joinNode(collision_free_configeration,is_goal);
+            if (!collision_free_configeration_other.empty()){
                 if(collision_free_configeration == collision_free_configeration_other){
-                    printf("Start Tree Size : %d\n",tree_.size());
-                    printf("End Tree Size: %d\n",tree_goal_.size());
-                    // for(int i=0;i<numofDOFs_;i++){
-                    //     printf("Last node in the Goal Tree %f\n",collision_free_configeration_other[i]);
-                    // }
-                    // printf("Size of the goal node Successor: %d\n",tree_goal_[arm_goal_].size());
-                    tree_.insert(tree_goal_.begin(), tree_goal_.end());
                     reachedGoal = true;
                 }
             }
         }
-        // if(j >= 1){
-        //     reachedGoal = true;
-        // }
-        // j++;
+        is_goal = !is_goal;
     }
     if(reachedGoal) {
-        path = getPath(arm_goal_);
+        path = getPath(collision_free_configeration);
+        path_to_goal = getPathToGoal(collision_free_configeration);
+        path.insert(path.end(), path_to_goal.begin(), path_to_goal.end());
+        // if(path[path.size()-1] == arm_goal_){
+        //     printf("Last Point is Goal\n");
+        // }
     }
     returnPathToMex(path,plan,planlength);
     return;

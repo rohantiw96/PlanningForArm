@@ -45,9 +45,9 @@ std::vector<double> RRT::interpolate(const std::vector<double> &start,const std:
     std::vector<double> delta;
     std::vector<double> collision_free_configeration = start;
     for(int i=0;i<numofDOFs_;i++){
-        delta.push_back((end[i] - start[i])/ (num_samples_ - 1));
+        delta.push_back((end[i] - start[i])/ num_samples_);
     }
-    for(int i=0; i < num_samples_- 1; i++){
+    for(int i=0; i < num_samples_+ 1; i++){
         std::vector<double> angles;
         for(int j=0;j<numofDOFs_;j++){
             angles.push_back(start[j]+ delta[j] * i);
@@ -75,16 +75,7 @@ bool RRT::inGoalRegion(const std::vector<double> &angles){
 std::vector<std::vector<double> > RRT::getPath(const std::vector<double> &angles){
     std::vector<std::vector<double> > path;
     std::vector<double> q_current = angles;
-    std::vector<double> q_new;
-    // path.push_back(arm_goal_);
     while(tree_[q_current] != arm_start_){
-        if(tree_[q_current].empty()) {
-            printf("Empty Return\n");
-            for(int i=0;i<numofDOFs_;i++){
-                printf("This node has no Neighbour %f\n",q_current[i]);
-                break;
-            }
-        }
         path.push_back(q_current);
         q_current = tree_[q_current];
     }
@@ -123,12 +114,14 @@ void RRT::plan(double*** plan,int* planlength){
         if (collision_free_configeration != q_near){
             addNode(q_near,collision_free_configeration);
             if(collision_free_configeration == arm_goal_){
+                printf("Reached Goal\n");
                 reachedGoal = true;
             }
         }
     }
     if(reachedGoal) {
         path = getPath(collision_free_configeration);
+        path.push_back(arm_goal_);
     }
     returnPathToMex(path,plan,planlength);
     return;
