@@ -12,7 +12,7 @@ SamplingPlanners::SamplingPlanners(double *map,int x_size,int y_size,const std::
   arm_start_ = arm_start;
   numofDOFs_ = numofDOFs;
   generator_ = std::mt19937(std::random_device()());
-  distribution_ = std::uniform_real_distribution<double>(0, 2*PI);
+  distribution_ = std::uniform_real_distribution<double>(0, 2*PI+0.000001);
   distribution_goal_selection_ = std::uniform_int_distribution<int>(1, 100);
 };
 
@@ -174,6 +174,20 @@ int SamplingPlanners::IsValidArmConfiguration(std::vector<double> angles)
       return 0;
   }
   return 1;
+}
+double SamplingPlanners::getNorm(const std::vector<double> vec){
+    double norm = 0;
+    for(const auto& i:vec){
+        norm = norm + pow(i,2);
+    }
+    return std::sqrt(norm);
+}
+double SamplingPlanners::euclideanDistance(const std::vector<double> &q_1,const std::vector<double> &q_2){
+    std::vector<double> diff;
+    for(int i = 0;i <numofDOFs_;i++){
+        diff.push_back(q_2[i] - q_1[i]);
+    }
+    return getNorm(diff);
 }
 std::vector<double> SamplingPlanners::getRandomAngleConfig(const double goal_bias_probability,const std::vector<double> arm_goal){
   std::vector<double> angles;

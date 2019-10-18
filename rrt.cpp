@@ -4,17 +4,6 @@ RRT::RRT(double *map,int x_size,int y_size,const std::vector<double> &arm_start,
         epsilon_ = epsilon;
         num_samples_ = num_samples;
 }
-double RRT::euclideanDistance(const std::vector<double> &q_1,const std::vector<double> &q_2){
-    std::vector<double> diff;
-    for(int i = 0;i <numofDOFs_;i++){
-        diff.push_back(q_2[i] - q_1[i]);
-    }
-    return getNorm(diff);
-}
-
-double RRT::getNorm(const std::vector<double> &vec){
-    return std::sqrt(std::inner_product(begin(vec), end(vec), begin(vec), 0));
-}
 void RRT::wrapAngles(std::vector<double> &angles){
     std::vector<double> wrapped_angle;
     for(int i=0;i<angles.size();i++){
@@ -63,8 +52,8 @@ std::vector<double> RRT::interpolate(const std::vector<double> &start,const std:
         for(int j=0;j<numofDOFs_;j++){
             angles.push_back(start[j]+ delta[j] * i);
         }
+        wrapAngles(angles);
         if (!IsValidArmConfiguration(angles)){
-            wrapAngles(collision_free_configeration);
             return collision_free_configeration;
         }
         collision_free_configeration = angles;
@@ -86,11 +75,20 @@ bool RRT::inGoalRegion(const std::vector<double> &angles){
 std::vector<std::vector<double> > RRT::getPath(const std::vector<double> &angles){
     std::vector<std::vector<double> > path;
     std::vector<double> q_current = angles;
-    path.push_back(arm_goal_);
+    std::vector<double> q_new;
+    // path.push_back(arm_goal_);
     while(tree_[q_current] != arm_start_){
+        if(tree_[q_current].empty()) {
+            printf("Empty Return\n");
+            for(int i=0;i<numofDOFs_;i++){
+                printf("This node has no Neighbour %f\n",q_current[i]);
+                break;
+            }
+        }
         path.push_back(q_current);
         q_current = tree_[q_current];
     }
+    path.push_back(arm_start_);
     std::reverse(std::begin(path), std::end(path));
     return path;
 }

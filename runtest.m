@@ -7,7 +7,7 @@ close all;
 
 %draw the environment
 figure('units','normalized','outerposition',[0 0 1 1]);
-imagesc(envmap'); axis square; colorbar; colormap jet; hold on;
+imagesc(envmap'); axis square; colorbar; colormap jet; hold  on;
 
 %armplan should be a matrix of D by N 
 %where D is the number of DOFs in the arm (length of armstart) and
