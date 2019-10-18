@@ -49,6 +49,5 @@ protected:
     int getMapIndex(const int x, const int y);
     std::vector<double> getRandomAngleConfig(const double goal_bias_probability,const std::vector<double> arm_goal);
     double euclideanDistance(const std::vector<double> &q_1,const std::vector<double> &q_2);
-    // bool isStartOrGoalValid();
-    double getNorm(const std::vector<double> vec);
+    double getNorm(const std::vector<double>& vec);
 };

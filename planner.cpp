@@ -86,8 +86,8 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //{
     //    plannerRRT(map,x_size,y_size, armstart_anglesV_rad, armgoal_anglesV_rad, numofDOFs, &plan, &planlength);
     //}
-    double epsilon = 2.0;
-    double samples = 30;
+    double epsilon = 3.0;
+    double samples = 100;
     double rewiring_radius = 0.5;
     RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
     planner.plan(&plan, &planlength);

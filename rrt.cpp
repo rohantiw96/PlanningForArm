@@ -12,6 +12,7 @@ void RRT::wrapAngles(std::vector<double> &angles){
             angles[i] += 2*PI;
     }
 }
+
 std::vector<double> RRT::findNearestNeighbor(const std::vector<double> &q_rand){
     std::vector<double> nearest_neighbor;
     double min_distance = INT_MAX;
@@ -57,6 +58,9 @@ std::vector<double> RRT::interpolate(const std::vector<double> &start,const std:
             return collision_free_configeration;
         }
         collision_free_configeration = angles;
+        if (collision_free_configeration == end){
+            printf("Got to the end\n");
+        }
     }
     return end;
 }
@@ -66,7 +70,7 @@ bool RRT::inGoalRegion(const std::vector<double> &angles){
     for(int i=0;i<numofDOFs_;i++){
         diff_vector.push_back(angles[i] - arm_goal_[i]);
     }
-    if (getNorm(diff_vector)< epsilon_){
+    if (getNorm(diff_vector) <= epsilon_ && interpolate(diff_vector,arm_goal_) == arm_goal_){
         return true;
     }
     return false;
@@ -106,18 +110,23 @@ void RRT::plan(double*** plan,int* planlength){
     std::vector<double> q_epilison;
     std::vector<double> collision_free_configeration;
     std::vector<std::vector<double>> path;
-    while(!reachedGoal){
+    int j = 0;
+    while(!reachedGoal){ 
         q_new = getRandomAngleConfig(0.1,arm_goal_);
         q_near = findNearestNeighbor(q_new);
         q_epilison = extend(q_near,q_new);
         collision_free_configeration = interpolate(q_near,q_epilison);
         if (collision_free_configeration != q_near){
             addNode(q_near,collision_free_configeration);
-            if(collision_free_configeration == arm_goal_){
+            if(inGoalRegion(collision_free_configeration)){
                 printf("Reached Goal\n");
                 reachedGoal = true;
             }
         }
+        if(j > 1000000){
+            break;
+        }
+        j++;
     }
     if(reachedGoal) {
         path = getPath(collision_free_configeration);

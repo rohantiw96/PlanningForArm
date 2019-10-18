@@ -175,7 +175,7 @@ int SamplingPlanners::IsValidArmConfiguration(std::vector<double> angles)
   }
   return 1;
 }
-double SamplingPlanners::getNorm(const std::vector<double> vec){
+double SamplingPlanners::getNorm(const std::vector<double>& vec){
     double norm = 0;
     for(const auto& i:vec){
         norm = norm + pow(i,2);

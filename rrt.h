@@ -17,9 +17,9 @@ class RRT: public SamplingPlanners{
         RRT(double *map,int x_size,int y_size,const std::vector<double> &arm_start,const std::vector<double> &arm_goal,int numofDOFs,double epsilon,int sampling_rate);
         virtual void plan(double ***plan,int *planlength);
     protected:
-        std::unordered_map<std::vector<double>,std::vector<double>,container_hash<std::vector<double> > > tree_;
         double epsilon_;
         int num_samples_;
+        std::unordered_map<std::vector<double>,std::vector<double>,container_hash<std::vector<double> > > tree_;
         virtual std::vector<double> findNearestNeighbor(const std::vector<double> &q_rand);
         std::vector<double> extend(const std::vector<double> &q_start,const std::vector<double> &q_end);
         virtual void addNode(const std::vector<double> &q_near,const std::vector<double> &q_new);
