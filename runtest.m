@@ -3,6 +3,7 @@ function[numofmoves, caught] = runtest(mapfile, armstart, armgoal, planner_id)
 LINKLENGTH_CELLS=10;
 envmap = load(mapfile);
 
+
 close all;
 
 %draw the environment
@@ -18,6 +19,7 @@ fprintf(1, 'plan of length %d was found\n', size(armplan,1));
 
 %draw the plan
 midx = size(envmap,2)/2;
+
 x = zeros(length(armstart)+1,1);
 x(1) = midx;
 y = zeros(length(armstart)+1,1);

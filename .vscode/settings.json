@@ -81,6 +81,7 @@
         "memory_resource": "cpp",
         "cinttypes": "cpp",
         "csignal": "cpp",
-        "future": "cpp"
+        "future": "cpp",
+        "__functional_03": "cpp"
     }
 }

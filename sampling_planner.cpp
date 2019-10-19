@@ -12,7 +12,8 @@ SamplingPlanners::SamplingPlanners(double *map,int x_size,int y_size,const std::
   arm_start_ = arm_start;
   numofDOFs_ = numofDOFs;
   generator_ = std::mt19937(std::random_device()());
-  distribution_ = std::uniform_real_distribution<double>(0, 2*PI+0.000001);
+  generator_sample_ = std::mt19937(std::random_device()());
+  distribution_ = std::uniform_real_distribution<double>(0, 2*PI+0.1);
   distribution_goal_selection_ = std::uniform_int_distribution<int>(1, 100);
 };
 
@@ -178,7 +179,7 @@ int SamplingPlanners::IsValidArmConfiguration(std::vector<double> angles)
 double SamplingPlanners::getNorm(const std::vector<double>& vec){
     double norm = 0;
     for(const auto& i:vec){
-        norm = norm + pow(i,2);
+        norm += i*i;
     }
     return std::sqrt(norm);
 }
@@ -189,9 +190,18 @@ double SamplingPlanners::euclideanDistance(const std::vector<double> &q_1,const 
     }
     return getNorm(diff);
 }
+
+void SamplingPlanners::wrapAngles(std::vector<double> &angles){
+    for(int i=0;i<angles.size();i++){
+        angles[i] = fmod(angles[i],2*PI);
+        if (angles[i] < 0)
+            angles[i] += 2*PI;
+    }
+}
+
 std::vector<double> SamplingPlanners::getRandomAngleConfig(const double goal_bias_probability,const std::vector<double> arm_goal){
   std::vector<double> angles;
-  if (distribution_goal_selection_(generator_) > goal_bias_probability*100){
+  if (distribution_goal_selection_(generator_sample_) > goal_bias_probability*100){
     for(int i=0;i<numofDOFs_;i++){
       angles.push_back(distribution_(generator_));
     }
@@ -201,3 +211,18 @@ std::vector<double> SamplingPlanners::getRandomAngleConfig(const double goal_bia
   }
   return angles;
 }
+
+void SamplingPlanners::returnPathToMex(const std::vector<std::vector<double>>& path,double ***plan,int *planlength){
+    *plan = NULL;
+    *planlength = path.size();
+    if(*planlength > 0){
+        *plan = (double**) malloc(*planlength*sizeof(double*));
+        for (int i = 0; i < *planlength; i++){
+            (*plan)[i] = (double*) malloc(numofDOFs_*sizeof(double)); 
+            for(int j = 0; j < numofDOFs_; j++){
+                (*plan)[i][j] = path[i][j];
+            }
+        }
+    }
+}
+

@@ -53,11 +53,11 @@ std::vector<std::vector<double>> RRTStar::findKNearestNeighbor(const std::vector
     return k_nearest_neighbor;
 }
 
-void RRTStar::updateCostOfChildren(const std::vector<double> &q){
+// void RRTStar::updateCostOfChildren(const std::vector<double> &q){
     
 
 
-}
+// }
 
 void RRTStar::updateChildren(const std::vector<double> &parent,const std::vector<double> &child){
     for(int i=0;i<child_map_[parent].size();i++){

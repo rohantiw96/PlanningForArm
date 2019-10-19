@@ -38,6 +38,7 @@ protected:
     int *planlength_;
     std::random_device rand_device_;
     std::mt19937 generator_;
+    std::mt19937 generator_sample_;
     std::uniform_real_distribution<double> distribution_;
     std::uniform_int_distribution<int> distribution_goal_selection_;
     void ContXY2Cell(const double x, const double y, short unsigned int *pX, short unsigned int *pY);
@@ -50,4 +51,6 @@ protected:
     std::vector<double> getRandomAngleConfig(const double goal_bias_probability,const std::vector<double> arm_goal);
     double euclideanDistance(const std::vector<double> &q_1,const std::vector<double> &q_2);
     double getNorm(const std::vector<double>& vec);
+    void wrapAngles(std::vector<double> &angles);
+    void returnPathToMex(const std::vector<std::vector<double>>& path,double ***plan,int *planlength);
 };

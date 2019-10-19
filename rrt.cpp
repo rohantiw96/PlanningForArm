@@ -1,16 +1,9 @@
 #include "rrt.h"
+#define LINKLENGTH_CELLS 10
 RRT::RRT(double *map,int x_size,int y_size,const std::vector<double> &arm_start,const std::vector<double> &arm_goal,int numofDOFs,double epsilon,int num_samples)
     :SamplingPlanners(map,x_size,y_size,arm_start,arm_goal,numofDOFs){
         epsilon_ = epsilon;
         num_samples_ = num_samples;
-}
-void RRT::wrapAngles(std::vector<double> &angles){
-    std::vector<double> wrapped_angle;
-    for(int i=0;i<angles.size();i++){
-        angles[i] = fmod(angles[i],2*PI);
-        if (angles[i] < 0)
-            angles[i] += 2*PI;
-    }
 }
 
 std::vector<double> RRT::findNearestNeighbor(const std::vector<double> &q_rand){
@@ -36,30 +29,28 @@ std::vector<double> RRT::extend(const std::vector<double> &q_start,const std::ve
     for(int i=0;i<numofDOFs_;i++){
         q_epsilon[i] = q_start[i] + q_epsilon[i]/norm * epsilon_;
     }
-    wrapAngles(q_epsilon);
     return q_epsilon;
 }
+
 void RRT::addNode(const std::vector<double> &q_near,const std::vector<double> &q_new){
     tree_[q_new] = q_near;
 }
-std::vector<double> RRT::interpolate(const std::vector<double> &start,const std::vector<double> &end){
+
+std::vector<double> RRT::interpolate(const std::vector<double> start,const std::vector<double> end){
     std::vector<double> delta;
-    std::vector<double> collision_free_configeration = start;
+    std::vector<double> collision_free_configeration;
+    std::vector<double> q_current = start;
     for(int i=0;i<numofDOFs_;i++){
-        delta.push_back((end[i] - start[i])/ num_samples_);
+        delta.push_back((end[i] - start[i])/num_samples_);
     }
-    for(int i=0; i < num_samples_+ 1; i++){
-        std::vector<double> angles;
+    for(int i=0; i < num_samples_; i++){
+        collision_free_configeration = q_current;
         for(int j=0;j<numofDOFs_;j++){
-            angles.push_back(start[j]+ delta[j] * i);
+            q_current[j] = q_current[j] + delta[j];
         }
-        wrapAngles(angles);
-        if (!IsValidArmConfiguration(angles)){
+        wrapAngles(q_current);
+        if (!IsValidArmConfiguration(q_current)){
             return collision_free_configeration;
-        }
-        collision_free_configeration = angles;
-        if (collision_free_configeration == end){
-            printf("Got to the end\n");
         }
     }
     return end;
@@ -70,7 +61,7 @@ bool RRT::inGoalRegion(const std::vector<double> &angles){
     for(int i=0;i<numofDOFs_;i++){
         diff_vector.push_back(angles[i] - arm_goal_[i]);
     }
-    if (getNorm(diff_vector) <= epsilon_ && interpolate(diff_vector,arm_goal_) == arm_goal_){
+    if (getNorm(diff_vector) <= epsilon_){
         return true;
     }
     return false;
@@ -88,7 +79,7 @@ std::vector<std::vector<double> > RRT::getPath(const std::vector<double> &angles
     return path;
 }
 
-void RRT::returnPathToMex(const std::vector<std::vector<double> >& path,double ***plan,int *planlength){
+void RRT::returnPathToMex(const std::vector<std::vector<double>>& path,double ***plan,int *planlength){
     *plan = NULL;
     *planlength = path.size();
     if(*planlength > 0){
@@ -104,28 +95,31 @@ void RRT::returnPathToMex(const std::vector<std::vector<double> >& path,double *
 
 void RRT::plan(double*** plan,int* planlength){
     bool reachedGoal = false;
-    tree_[arm_start_] = arm_start_;
+    tree_[arm_start_] = std::vector<double>{};
     std::vector<double> q_new;
     std::vector<double> q_near;
+    std::vector<double> q_near_goal;
     std::vector<double> q_epilison;
     std::vector<double> collision_free_configeration;
     std::vector<std::vector<double>> path;
     int j = 0;
     while(!reachedGoal){ 
-        q_new = getRandomAngleConfig(0.1,arm_goal_);
+        q_new = getRandomAngleConfig(0.2,arm_goal_);
         q_near = findNearestNeighbor(q_new);
         q_epilison = extend(q_near,q_new);
         collision_free_configeration = interpolate(q_near,q_epilison);
         if (collision_free_configeration != q_near){
             addNode(q_near,collision_free_configeration);
-            if(inGoalRegion(collision_free_configeration)){
-                printf("Reached Goal\n");
+            if(collision_free_configeration == arm_goal_){
+                printf("Found A Path\n");
                 reachedGoal = true;
             }
         }
-        if(j > 1000000){
+        if(j > 80000){
+            printf("Coundn't Find A Path\n");
             break;
         }
+        printf("%d\n",j);
         j++;
     }
     if(reachedGoal) {

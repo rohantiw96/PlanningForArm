@@ -95,9 +95,6 @@ void RRTConnect::plan(double*** plan,int* planlength){
         path = getPath(collision_free_configeration);
         path_to_goal = getPathToGoal(collision_free_configeration);
         path.insert(path.end(), path_to_goal.begin(), path_to_goal.end());
-        // if(path[path.size()-1] == arm_goal_){
-        //     printf("Last Point is Goal\n");
-        // }
     }
     returnPathToMex(path,plan,planlength);
     return;

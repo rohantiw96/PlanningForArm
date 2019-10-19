@@ -5,7 +5,10 @@
  *=================================================================*/
 #include <math.h>
 #include "mex.h"
-#include "rrt.h"
+// #include "rrt.h"
+#include "prm.h"
+// #include "rrtstar.h"
+// #include "rrtconnect.h"
 
 /* Input Arguments */
 #define	MAP_IN      prhs[0]
@@ -14,14 +17,15 @@
 #define	PLANNER_ID_IN     prhs[3]
 
 /* Planner Ids */
-// #define RRT         0
+#define RRT         0
 #define RRTCONNECT  1
 #define RRTSTAR     2
-#define PRM         3
+// #define PRM         3
 
 /* Output Arguments */
 #define	PLAN_OUT	plhs[0]
 #define	PLANLENGTH_OUT	plhs[1]
+
 
 // #define GETMAPINDEX(X, Y, XSIZE, YSIZE) (Y*XSIZE + X)
 
@@ -86,11 +90,19 @@ void mexFunction( int nlhs, mxArray *plhs[],
     //{
     //    plannerRRT(map,x_size,y_size, armstart_anglesV_rad, armgoal_anglesV_rad, numofDOFs, &plan, &planlength);
     //}
-    double epsilon = 3.0;
-    double samples = 100;
+    double epsilon = 1.0;
+    double samples = 20;
     double rewiring_radius = 0.5;
-    RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
+    int num_iterations = 110000;
+    auto start = std::chrono::high_resolution_clock::now();
+    // RRTStar planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,rewiring_radius);
+    // RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
+    PRM planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,num_iterations);
     planner.plan(&plan, &planlength);
+    // planner.buildRoadMap();
+    auto end = std::chrono::high_resolution_clock::now();
+    std::cout << "Process Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
+    // int64_t processTime = duration.count();
     printf("planner returned plan of length=%d\n", planlength); 
     
     /* Create return values */

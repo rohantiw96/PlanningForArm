@@ -37,6 +37,22 @@ std::vector<std::vector<double>> PRM::findKNearestNeighbor(const std::vector<dou
     return k_nearest_neighbor;
 }
 
+std::vector<double> PRM::findNearestNeighbor(const std::vector<double> &q_new){
+    std::vector<double> nearest_neighbor;
+    double euclidean_distance = 0;
+    double min_distance = std::numeric_limits<double>::max();
+    for(const auto& c:comopnents_){
+        for(const auto& m:c){
+            euclidean_distance = euclideanDistance(m.first,q_new);
+            if(euclidean_distance < min_distance && interpolate(q_new,m.first)){
+                min_distance = euclidean_distance;
+                nearest_neighbor = m.first;
+            }
+        }
+    }
+    return nearest_neighbor;
+}
+
 void PRM::addSample(std::vector<double> &q_new,std::vector<double> &q_neighbor){
     for(auto& c:comopnents_){
         if(c.find(q_neighbor) != c.end()){
@@ -46,7 +62,17 @@ void PRM::addSample(std::vector<double> &q_new,std::vector<double> &q_neighbor){
         }
     }
 }
-void PRM::mergeComponents(component_map& m1,component_map& m2){
+int PRM::findComponent(std::vector<double> &q_neighbor){
+    int num_component = 0;
+    for(auto& c:comopnents_){
+        if(c.find(q_neighbor) != c.end()){
+            break;
+        }
+        num_component++;
+    }
+    return num_component;
+}
+void PRM::mergeComponents(component_map &m1,component_map &m2){
     if(m1.size() > m2.size()) {
         m1.insert(m2.begin(),m2.end());
         comopnents_.remove(m2);
@@ -55,29 +81,102 @@ void PRM::mergeComponents(component_map& m1,component_map& m2){
         m2.insert(m1.begin(),m1.end());
         comopnents_.remove(m1);
     }
-        // for(auto& c:m2){
-        //     m1.insert(c);
-        // }
+}
+void PRM::addStartAndGoalNode(){
+    std::vector<double> start_neighbor = findNearestNeighbor(arm_start_);
+    std::vector<double> goal_neighbor = findNearestNeighbor(arm_goal_);
+    addSample(arm_start_,start_neighbor);
+    addSample(arm_goal_,goal_neighbor);
+}
+
+std::vector<std::vector<double>> PRM::backTrack(std::vector<double> node){
+    std::vector<double> current_angle = node;
+    std::vector<std::vector<double>> path;
+    while (current_angle != arm_start_) // Backtracking to get the shortest path
+    {
+        current_angle = came_from_[current_angle];
+        path.emplace_back(current_angle);
+    }
+    path.push_back(arm_start_);
+    std::reverse(path.begin(),path.end());
+    return path;
+}
+
+std::vector<std::vector<double>> PRM::getShortestPath(){
+    int goal_component = findComponent(arm_goal_);
+    if (goal_component != findComponent(arm_start_)){
+        printf("Start and Goal don't belong to the same components\n");
+        return std::vector<std::vector<double>>{};
+    }
+    else{
+        std::unordered_map<std::vector<double>,double,container_hash<std::vector<double>>> dijkstra_cost_;
+        component_map m = *std::next(comopnents_.begin(), goal_component);
+        for(const auto& nodes:m){
+            dijkstra_cost_[nodes.first] = std::numeric_limits<double>::max();
+        }
+        std::priority_queue<std::vector<double>> list;
+        dijkstra_cost_[arm_start_] = 0.0; // Cost of tbe initial node 0
+        list.push(arm_start_);
+        double cost = 0;
+        std::vector<std::vector<double>> neighbors;
+        std::vector<double> current;
+        while(!list.empty()){
+            current = list.top();
+            list.pop();
+            neighbors = m.find(current)->second;
+            for(const auto& n:neighbors){
+                cost = euclideanDistance(current,n) + dijkstra_cost_[current];
+                if (cost < dijkstra_cost_[n]){
+                    dijkstra_cost_[n] = cost;
+                    list.push(n);
+                    came_from_[n] = current;
+                }
+            }
+        }
+    }
+    return backTrack(arm_goal_);
 }
 
 void PRM::buildRoadMap(){
     int iter = 0;
     std::vector<double> q_rand;
     std::vector<std::vector<double>> k_nearest_neighbors;
+    int own_component = -1;
+    int neighbor_component = -1;
     while(iter < num_iteration_){
         q_rand = getRandomAngleConfig(0,std::vector<double>{});
         if (IsValidArmConfiguration(q_rand)){
             k_nearest_neighbors = findKNearestNeighbor(q_rand);
             if(k_nearest_neighbors.size()>0){
-                for(auto& neighbors:k_nearest_neighbors){
-                    addSample(q_rand,neighbors);
-                }
+                addSample(q_rand,*k_nearest_neighbors.begin()); // Add the sample to the componenent of the first neighbor
+                own_component = findComponent(q_rand);
+                for (auto neighbors = std::next(k_nearest_neighbors.begin()); neighbors != k_nearest_neighbors.end(); ++neighbors){
+	                neighbor_component = findComponent(*neighbors);
+                    if(own_component!=neighbor_component){
+                        mergeComponents(*std::next(comopnents_.begin(), own_component),*std::next(comopnents_.begin(), neighbor_component));
+                        addSample(q_rand,*neighbors);
+                        own_component = findComponent(q_rand);
+                    }
+                }   
             }
             else{
-                comopnents_.emplace_back(component_map(q_rand,std::vector<std::vector<double>>{}));
+                std::unordered_map<std::vector<double>, std::vector<std::vector<double>>, container_hash<std::vector<double>>> new_component;
+                new_component[q_rand] = std::vector<std::vector<double>>{};
+                comopnents_.emplace_back(new_component);
             }
         }
-
+        printf("%d\n",iter);
         iter++;
     }
+    printf("Number Of Components %d\n",comopnents_.size());
+    // for(const auto& c:comopnents_){
+    //     printf("Size of Components %d\n",c.size());
+    // }
+}
+
+void PRM::plan(double ***plan,int *planlength){
+    buildRoadMap();
+    addStartAndGoalNode();
+    std::vector<std::vector<double>> path =  getShortestPath();
+    returnPathToMex(path,plan,planlength);
 }
