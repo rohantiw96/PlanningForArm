@@ -1,7 +1,15 @@
+#pragma once
 #include <iostream>
 #include <math.h>
 #include <random>
 #include <chrono>
+#include <boost/functional/hash.hpp>
+#include <unordered_map>
+#include <vector>
+#include <algorithm>
+#include <functional>
+#include <cmath>
+#include <queue>
 #define PI 3.141592654
 
 typedef struct
@@ -16,6 +24,13 @@ typedef struct
     int XIndex, YIndex;
     int Flipped;
 } bresenham_param_t;
+
+template <typename Container> 
+struct container_hash {
+    std::size_t operator()(Container const& c) const {
+        return boost::hash_range(c.begin(), c.end());
+    }
+};
 
 class SamplingPlanners
 {
@@ -53,4 +68,7 @@ protected:
     double getNorm(const std::vector<double>& vec);
     void wrapAngles(std::vector<double> &angles);
     void returnPathToMex(const std::vector<std::vector<double>>& path,double ***plan,int *planlength);
+    double getPathCost(const std::vector<std::vector<double>>& path);
+    bool checkGoalAndStartForCollision();
+
 };

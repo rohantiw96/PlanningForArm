@@ -225,4 +225,25 @@ void SamplingPlanners::returnPathToMex(const std::vector<std::vector<double>>& p
         }
     }
 }
+double SamplingPlanners::getPathCost(const std::vector<std::vector<double>>& path){
+    double total_cost = 0;
+    for(int i=0;i<path.size()-1;i++){
+        total_cost = total_cost + euclideanDistance(path[i],path[i+1]);
+    }
+    return total_cost; 
+}
+
+bool SamplingPlanners::checkGoalAndStartForCollision(){
+    if (!IsValidArmConfiguration(arm_goal_))
+    {
+      printf("goal point is in collision\n");
+      return true;
+    }
+  if (!IsValidArmConfiguration(arm_start_))
+    {
+      printf("starting point is in collision\n");
+      return true;
+    }
+  return false;
+}
 

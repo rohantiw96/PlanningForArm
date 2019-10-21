@@ -102,6 +102,10 @@ std::vector<std::vector<double>> PRM::backTrack(std::vector<double> node){
     return path;
 }
 
+int PRM::returnNumberOfVertices(){
+    return comopnents_.size();
+}
+
 std::vector<std::vector<double>> PRM::getShortestPath(){
     int goal_component = findComponent(arm_goal_);
     if (goal_component != findComponent(arm_start_)){
@@ -165,18 +169,20 @@ void PRM::buildRoadMap(){
                 comopnents_.emplace_back(new_component);
             }
         }
-        printf("%d\n",iter);
         iter++;
     }
-    printf("Number Of Components %d\n",comopnents_.size());
-    // for(const auto& c:comopnents_){
-    //     printf("Size of Components %d\n",c.size());
-    // }
 }
-
+double PRM::returnPathCost(){
+    return total_cost_;
+}
 void PRM::plan(double ***plan,int *planlength){
-    buildRoadMap();
-    addStartAndGoalNode();
-    std::vector<std::vector<double>> path =  getShortestPath();
+    total_cost_= 0;
+    std::vector<std::vector<double>> path = std::vector<std::vector<double>>{};
+    if (!checkGoalAndStartForCollision()){
+        buildRoadMap();
+        addStartAndGoalNode();
+        path =  getShortestPath();
+        if (path.size() > 0) total_cost_ = getPathCost(path);
+    }
     returnPathToMex(path,plan,planlength);
 }

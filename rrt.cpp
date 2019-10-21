@@ -79,18 +79,12 @@ std::vector<std::vector<double> > RRT::getPath(const std::vector<double> &angles
     return path;
 }
 
-void RRT::returnPathToMex(const std::vector<std::vector<double>>& path,double ***plan,int *planlength){
-    *plan = NULL;
-    *planlength = path.size();
-    if(*planlength > 0){
-        *plan = (double**) malloc(*planlength*sizeof(double*));
-        for (int i = 0; i < *planlength; i++){
-            (*plan)[i] = (double*) malloc(numofDOFs_*sizeof(double)); 
-            for(int j = 0; j < numofDOFs_; j++){
-                (*plan)[i][j] = path[i][j];
-            }
-        }
-    }
+double RRT::returnPathCost(){
+    return total_cost_;
+}
+
+int RRT::returnNumberOfVertices(){
+    return tree_.size();
 }
 
 void RRT::plan(double*** plan,int* planlength){
@@ -101,30 +95,35 @@ void RRT::plan(double*** plan,int* planlength){
     std::vector<double> q_near_goal;
     std::vector<double> q_epilison;
     std::vector<double> collision_free_configeration;
-    std::vector<std::vector<double>> path;
+    std::vector<std::vector<double>> path = std::vector<std::vector<double>>{};
     int j = 0;
-    while(!reachedGoal){ 
-        q_new = getRandomAngleConfig(0.2,arm_goal_);
-        q_near = findNearestNeighbor(q_new);
-        q_epilison = extend(q_near,q_new);
-        collision_free_configeration = interpolate(q_near,q_epilison);
-        if (collision_free_configeration != q_near){
-            addNode(q_near,collision_free_configeration);
-            if(collision_free_configeration == arm_goal_){
-                printf("Found A Path\n");
-                reachedGoal = true;
+    if (!checkGoalAndStartForCollision()){
+        while(!reachedGoal){ 
+            q_new = getRandomAngleConfig(0.1,arm_goal_);
+            q_near = findNearestNeighbor(q_new);
+            q_epilison = extend(q_near,q_new);
+            collision_free_configeration = interpolate(q_near,q_epilison);
+            if (collision_free_configeration != q_near){
+                addNode(q_near,collision_free_configeration);
+                if(collision_free_configeration == arm_goal_){
+                    printf("Found A Path\n");
+                    reachedGoal = true;
+                }
             }
+            if(j > 50000){
+                printf("Coundn't Find A Path\n");
+                break;
+            }
+            j++;
         }
-        if(j > 80000){
-            printf("Coundn't Find A Path\n");
-            break;
-        }
-        printf("%d\n",j);
-        j++;
     }
     if(reachedGoal) {
         path = getPath(collision_free_configeration);
         path.push_back(arm_goal_);
+        total_cost_ = getPathCost(path);
+    }
+    else{
+        total_cost_ = 0;
     }
     returnPathToMex(path,plan,planlength);
     return;

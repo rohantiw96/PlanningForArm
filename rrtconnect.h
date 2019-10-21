@@ -1,3 +1,4 @@
+#pragma once
 #include "rrt.h"
 
 class RRTConnect: public RRT{

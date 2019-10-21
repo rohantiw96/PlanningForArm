@@ -5,10 +5,10 @@
  *=================================================================*/
 #include <math.h>
 #include "mex.h"
-// #include "rrt.h"
 #include "prm.h"
-// #include "rrtstar.h"
-// #include "rrtconnect.h"
+#include "rrtstar.h"
+#include "rrtconnect.h"
+#include <time.h>
 
 /* Input Arguments */
 #define	MAP_IN      prhs[0]
@@ -17,14 +17,17 @@
 #define	PLANNER_ID_IN     prhs[3]
 
 /* Planner Ids */
-#define RRT         0
+#define RRTPLANNER  0
 #define RRTCONNECT  1
 #define RRTSTAR     2
-// #define PRM         3
+#define PRMPLANNER  3
 
 /* Output Arguments */
 #define	PLAN_OUT	plhs[0]
 #define	PLANLENGTH_OUT	plhs[1]
+#define	PATHCOST_OUT	plhs[2]
+#define	PATHTIME_OUT	plhs[3]
+#define	NUMVERTICES_OUT	plhs[4]
 
 
 // #define GETMAPINDEX(X, Y, XSIZE, YSIZE) (Y*XSIZE + X)
@@ -50,7 +53,7 @@ void mexFunction( int nlhs, mxArray *plhs[],
     if (nrhs != 4) { 
 	    mexErrMsgIdAndTxt( "MATLAB:planner:invalidNumInputs",
                 "Four input arguments required."); 
-    } else if (nlhs != 2) {
+    } else if (nlhs != 5) {
 	    mexErrMsgIdAndTxt( "MATLAB:planner:maxlhs",
                 "One output argument required."); 
     } 
@@ -86,25 +89,45 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int planlength = 0;
     
     //you can may be call the corresponding planner function here
-    //if (planner_id == RRT)
-    //{
-    //    plannerRRT(map,x_size,y_size, armstart_anglesV_rad, armgoal_anglesV_rad, numofDOFs, &plan, &planlength);
-    //}
-    double epsilon = 1.0;
+    double epsilon = 1;
     double samples = 20;
-    double rewiring_radius = 0.5;
-    int num_iterations = 110000;
-    auto start = std::chrono::high_resolution_clock::now();
-    // RRTStar planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,rewiring_radius);
-    // RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
-    PRM planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,num_iterations);
-    planner.plan(&plan, &planlength);
-    // planner.buildRoadMap();
-    auto end = std::chrono::high_resolution_clock::now();
-    std::cout << "Process Took: " << std::chrono::duration_cast<std::chrono::milliseconds>(end - start).count() << " milliseconds\n";
-    // int64_t processTime = duration.count();
+    double cost = 0;
+    double num_vertices = 0;
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
+    if (planner_id == PRMPLANNER){
+        int num_iterations = 100000;    
+        PRM planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,num_iterations);
+        planner.plan(&plan, &planlength);
+        cost = planner.returnPathCost();
+        num_vertices = planner.returnNumberOfVertices();
+    }
+    else if (planner_id == RRTPLANNER){
+        RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
+        planner.plan(&plan, &planlength);
+        cost = planner.returnPathCost();
+        num_vertices = planner.returnNumberOfVertices();
+    }
+    else if (planner_id == RRTCONNECT){
+        RRTConnect planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
+        planner.plan(&plan, &planlength);
+        cost = planner.returnPathCost();
+        num_vertices = planner.returnNumberOfVertices();
+    }
+    else if (planner_id == RRTSTAR){
+        double rewiring_radius = 0.5;
+        RRTStar planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,rewiring_radius);
+        planner.plan(&plan, &planlength);
+        cost = planner.returnPathCost();
+        num_vertices = planner.returnNumberOfVertices();
+    }
+
+    std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
+    std::chrono::duration<double, std::milli> time_span = t2 - t1;
+    double time = time_span.count()/1000.0;
+    std::cout << "Process Took: " << time << " seconds\n";
     printf("planner returned plan of length=%d\n", planlength); 
-    
+    printf("Total Cost %f\n",cost);
+    printf("Number of Vertices %f\n",num_vertices);
     /* Create return values */
     if(planlength > 0)
     {
@@ -131,9 +154,18 @@ void mexFunction( int nlhs, mxArray *plhs[],
                 plan_out[j] = armstart_anglesV_rad[j];
         }     
     }
-    PLANLENGTH_OUT = mxCreateNumericMatrix( (mwSize)1, (mwSize)1, mxINT8_CLASS, mxREAL); 
+    PLANLENGTH_OUT = mxCreateNumericMatrix( (mwSize)1, (mwSize)1, mxINT8_CLASS, mxREAL);
+    PATHTIME_OUT = mxCreateNumericMatrix( (mwSize)1, (mwSize)1, mxDOUBLE_CLASS, mxREAL); 
+    PATHCOST_OUT = mxCreateNumericMatrix( (mwSize)1, (mwSize)1, mxDOUBLE_CLASS, mxREAL);
+    NUMVERTICES_OUT = mxCreateNumericMatrix( (mwSize)1, (mwSize)1, mxDOUBLE_CLASS, mxREAL); 
     int* planlength_out = (int*) mxGetPr(PLANLENGTH_OUT);
     *planlength_out = planlength;
+    double* plantime_out = (double*) mxGetPr(PATHTIME_OUT);
+    *plantime_out = time;
+    double* plancost_out = (double*) mxGetPr(PATHCOST_OUT);
+    *plancost_out = cost;
+    double* planvertices_out = (double*) mxGetPr(NUMVERTICES_OUT);
+    *planvertices_out = num_vertices;
     return;
     
 }

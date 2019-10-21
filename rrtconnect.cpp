@@ -75,26 +75,38 @@ void RRTConnect::plan(double*** plan,int* planlength){
     std::vector<double> q_new;
     std::vector<double> collision_free_configeration;
     std::vector<double> collision_free_configeration_other;
-    std::vector<std::vector<double>> path;
+    std::vector<std::vector<double>> path = std::vector<std::vector<double>>{};
     std::vector<std::vector<double>> path_to_goal;
     bool is_goal = true;
-    while(!reachedGoal){
-        q_new = getRandomAngleConfig(0,arm_goal_);
-        collision_free_configeration = extendNode(q_new,!is_goal);
-        if (!collision_free_configeration.empty()){
-            collision_free_configeration_other = joinNode(collision_free_configeration,is_goal);
-            if (!collision_free_configeration_other.empty()){
-                if(collision_free_configeration == collision_free_configeration_other){
-                    reachedGoal = true;
+    int j = 0;
+    if (!checkGoalAndStartForCollision()){
+        while(!reachedGoal){
+            q_new = getRandomAngleConfig(0,arm_goal_);
+            collision_free_configeration = extendNode(q_new,!is_goal);
+            if (!collision_free_configeration.empty()){
+                collision_free_configeration_other = joinNode(collision_free_configeration,is_goal);
+                if (!collision_free_configeration_other.empty()){
+                    if(collision_free_configeration == collision_free_configeration_other){
+                        reachedGoal = true;
+                    }
                 }
             }
+            is_goal = !is_goal;
+            if(j>50000){
+                printf("Coundn't Find A Path\n");
+                break;
+            }
+            j++;
         }
-        is_goal = !is_goal;
     }
     if(reachedGoal) {
         path = getPath(collision_free_configeration);
         path_to_goal = getPathToGoal(collision_free_configeration);
         path.insert(path.end(), path_to_goal.begin(), path_to_goal.end());
+        total_cost_ = getPathCost(path);
+    }
+    else{
+        total_cost_ = 0;
     }
     returnPathToMex(path,plan,planlength);
     return;
