@@ -1,13 +1,5 @@
-/*=================================================================
- *
- * planner.c
- *
- *=================================================================*/
 #include <math.h>
 #include "mex.h"
-#include "prm.h"
-#include "rrtstar.h"
-#include "rrtconnect.h"
 #include <time.h>
 
 /* Input Arguments */
@@ -25,8 +17,8 @@
 /* Output Arguments */
 #define	PLAN_OUT	plhs[0]
 #define	PLANLENGTH_OUT	plhs[1]
-#define	PATHCOST_OUT	plhs[2]
-#define	PATHTIME_OUT	plhs[3]
+#define	PATHTIME_OUT	plhs[2]
+#define	PATHCOST_OUT	plhs[3]
 #define	NUMVERTICES_OUT	plhs[4]
 
 
@@ -89,43 +81,22 @@ void mexFunction( int nlhs, mxArray *plhs[],
     int planlength = 0;
     
     //you can may be call the corresponding planner function here
-    double epsilon = 1;
-    double samples = 20;
     double cost = 0;
     double num_vertices = 0;
-    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();
-    if (planner_id == PRMPLANNER){
-        int num_iterations = 100000;    
-        PRM planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,num_iterations);
-        planner.plan(&plan, &planlength);
-        cost = planner.returnPathCost();
-        num_vertices = planner.returnNumberOfVertices();
-    }
-    else if (planner_id == RRTPLANNER){
-        RRT planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
-        planner.plan(&plan, &planlength);
-        cost = planner.returnPathCost();
-        num_vertices = planner.returnNumberOfVertices();
-    }
-    else if (planner_id == RRTCONNECT){
-        RRTConnect planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples);
-        planner.plan(&plan, &planlength);
-        cost = planner.returnPathCost();
-        num_vertices = planner.returnNumberOfVertices();
-    }
-    else if (planner_id == RRTSTAR){
-        double rewiring_radius = 0.5;
-        RRTStar planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,rewiring_radius);
-        planner.plan(&plan, &planlength);
-        cost = planner.returnPathCost();
-        num_vertices = planner.returnNumberOfVertices();
-    }
+    int num_iterations = 100000;  
+    std::chrono::high_resolution_clock::time_point t1 = std::chrono::high_resolution_clock::now();  
+
+    // Call Planner Here Exmaple: 
+
+    // SamplingPlanner planner(map,x_size,y_size,arm_start,arm_goal,numofDOFs,epsilon,samples,num_iterations);
+    // planner.plan(&plan, &planlength);
 
     std::chrono::high_resolution_clock::time_point t2 = std::chrono::high_resolution_clock::now();
     std::chrono::duration<double, std::milli> time_span = t2 - t1;
     double time = time_span.count()/1000.0;
-    std::cout << "Process Took: " << time << " seconds\n";
-    printf("planner returned plan of length=%d\n", planlength); 
+
+    printf("Planner Took: %f seconds\n",time);
+    printf("Planner returned plan of length=%d\n", planlength); 
     printf("Total Cost %f\n",cost);
     printf("Number of Vertices %f\n",num_vertices);
     /* Create return values */

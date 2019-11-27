@@ -103,7 +103,7 @@ std::vector<std::vector<double>> PRM::backTrack(std::vector<double> node){
 }
 
 int PRM::returnNumberOfVertices(){
-    return comopnents_.size();
+    return (*std::next(comopnents_.begin(), findComponent(arm_goal_))).size();
 }
 
 std::vector<std::vector<double>> PRM::getShortestPath(){

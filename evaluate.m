@@ -38,13 +38,8 @@ start_values = [
     [1.500000 2.760000 1.330000 0.150000 0.390000], 
     [0.590000 2.010000 5.610000 0.080000 4.240000], 
     [0.400000 0.100000 1.640000 2.870000 4.790000], 
-%     [1.290000 2.780000 1.400000 0.420000 3.610000], 
-%     [1.650000 2.690000 0.490000 0.870000 4.500000], 
-%     [1.300000 5.760000 2.260000 4.460000 0.210000], 
-%     [1.600000 1.200000 5.170000 1.850000 1.750000], 
-%     [0.160000 1.600000 3.650000 1.860000 2.710000], 
     [1.570000 1.520000 1.060000 5.520000 3.980000]];
-% 
+
 goal_values = [
     [1.780000 0.510000 0.720000 6.030000 3.440000],
     [1.040000 2.960000 2.280000 5.440000 2.200000],
@@ -87,9 +82,7 @@ goal_values = [
     [0.930000 3.020000 2.380000 4.770000 3.150000], 
     [0.350000 2.060000 1.160000 6.050000 2.830000]];
 dofs = 5;
-num_of_samples =39;% size(start_values,1);
-% start_values = (2*pi()).*rand(100,dofs);
-% goal_values = (2*pi()).*rand(100,dofs);
+num_of_samples =39;
 cost_ = zeros(4,num_of_samples);
 time_ = zeros(4,num_of_samples);
 vertices_ = zeros(4,num_of_samples);
@@ -101,16 +94,13 @@ for k = 1:4
         cost_(k,i) = cost;
         time_(k,i) = time;
         vertices_(k,i) = vertices;
-%         under_5s(k,i) = s5;
         success(k,i) = armplanlength~=0;
         i
     end
 end
 fprintf("cost\n");
-mean(cost_,2);
+mean(cost_,2)
 fprintf("\ntime\n")
-mean(time_,2);
+mean(time_,2)
 fprintf("\nvertices\n")
-mean(vertices_,2);
-fprintf("\n under 5 seconds\n")
-mean(under_5s,2);
+mean(vertices_,2)
